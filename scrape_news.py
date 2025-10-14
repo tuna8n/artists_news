@@ -2,26 +2,40 @@
 import feedparser
 import json
 from datetime import datetime
+from pathlib import Path
 
 # GoogleニュースRSS（サカナクションで検索）
-url = "https://news.google.com/rss/search?q=サカナクション&hl=ja&gl=JP&ceid=JP:ja"
+RSS_URL = "https://news.google.com/rss/search?q=サカナクション&hl=ja&gl=JP&ceid=JP:ja"
 
-feed = feedparser.parse(url)
-articles = []
+def fetch_news(url, limit=20):
+    feed = feedparser.parse(url)
+    articles = []
+    for entry in feed.entries[:limit]:
+        # published がない場合のためのフォールバック
+        published = getattr(entry, "published", "")
+        source = ""
+        if hasattr(entry, "source"):
+            source = getattr(entry.source, "title", "")
+        articles.append({
+            "title": entry.title,
+            "link": entry.link,
+            "published": published,
+            "source": source
+        })
+    return articles
 
-for entry in feed.entries[:10]:  # 最新10件
-    articles.append({
-        "title": entry.title,
-        "link": entry.link,
-        "published": entry.published,
-        "source": entry.source.title if "source" in entry else "",
-    })
+def save_json(data, path="data/news.json"):
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with p.open("w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
-# 保存（data/news.json）
-with open("data/news.json", "w", encoding="utf-8") as f:
-    json.dump({
-        "updated": datetime.now().isoformat(),
+if __name__ == "__main__":
+    articles = fetch_news(RSS_URL, limit=20)
+    payload = {
+        "updated": datetime.utcnow().isoformat() + "Z",
+        "count": len(articles),
         "articles": articles
-    }, f, ensure_ascii=False, indent=2)
-
-print(f"{len(articles)}件のニュースを保存しました！")
+    }
+    save_json(payload)
+    print(f"Saved {len(articles)} articles to data/news.json")
