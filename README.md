@@ -1,2 +1,2 @@
-# get_sakanaction_news
+# artists_news
 automated news scraping of sakanaction
