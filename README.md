@@ -1,2 +1,2 @@
 # artists_news
-automated news scraping of sakanaction
+automated news scraping tool
